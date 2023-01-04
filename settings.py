@@ -15,6 +15,6 @@ class Settings:
         self.bullet_speed_factor = 1
         self.bullet_width = 10
         self.bullet_height = 20
-        self.bullet_color = (255, 255, 255)
+        self.bullet_color = 255, 0, 0
 
 
