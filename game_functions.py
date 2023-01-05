@@ -11,7 +11,11 @@ def check_events(ai_settings, screen, ship, bullets):
         elif event.type == pygame.KEYDOWN:
             check_keydown_events(event, ai_settings, screen, ship, bullets)
         elif event.type == pygame.KEYUP:
+<<<<<<< HEAD
             check_keyup_events(event,ai_settings, ship)
+=======
+            check_keyup_events(event, ship)
+>>>>>>> 2934102e72c0d5210cd6749d51dbff771d6b37c3
             
 
 def check_keydown_events(event, ai_settings, screen, ship, bullets):
