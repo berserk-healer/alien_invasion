@@ -1,8 +1,8 @@
 import sys
 import pygame
-from random import randint
 from bullet import Bullet
 from alien import Alien
+from time import sleep
 
 
 def check_events(ai_settings, screen, ship, bullets):
@@ -47,7 +47,6 @@ def check_keyup_events(event, ai_settings, ship):
 
 def update_screen(ai_settings, screen, ship, bullets, aliens):
     """Update images on the screen and flip to the new screen."""
-    screen.fill(ai_settings.bg_color)
     # Redraw bullets behind the ship and aliens
     for bullet in bullets.sprites():
         bullet.draw_bullet()
@@ -56,12 +55,23 @@ def update_screen(ai_settings, screen, ship, bullets, aliens):
     pygame.display.flip()
 
 
-def update_bullets(bullets):
+def update_bullets(ai_settings, aliens, bullets, screen, ship):
     """Update position of bullets and get rid of old bullets"""
     bullets.update()
     for bullet in bullets.copy():
         if bullet.rect.bottom <= 0:
             bullets.remove(bullet)
+
+    check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets)
+    
+
+def check_bullet_alien_collisions(ai_settings, screen, ship, aliens, bullets):
+    """Respond to alien bullet collision."""
+    collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
+    if len(aliens) == 0:
+        # Destroy existing bulelts  and create new fleet
+        bullets.empty()
+        create_fleet(ai_settings, screen, aliens, ship)
 
 
 def fire_bullet(ai_settings, screen, ship, bullets):
@@ -106,12 +116,64 @@ def create_alien(ai_settings, screen, aliens, alien_number, row_number):
 def create_fleet(ai_settings, screen, aliens, ship):
     """Create a fleet of aliens"""
     alien = Alien(ai_settings, screen)
-    number_aliens_x =  randint(1, 5) # get_number_alien_x(ai_settings, alien.rect.width) 
-    number_rows = randint(1, 3) # get_number_rows(ai_settings, ship.rect.height, alien.rect.height)
+    number_aliens_x = 5  # get_number_alien_x(ai_settings, alien.rect.width) 
+    number_rows = 3 # get_number_rows(ai_settings, ship.rect.height, alien.rect.height)
 
     for row_number in range(number_rows):
         for alien_number in range(number_aliens_x):
             create_alien(ai_settings, screen, aliens, alien_number, row_number)
         
         
-        
+def check_fleet_edge(ai_settings, aliens):
+    """Respond appropriately if aliens reached edge."""
+    for alien in aliens.sprites():
+        if alien.check_edges():
+            change_fleet_direction(ai_settings, aliens)
+            break
+    
+
+def change_fleet_direction(ai_settings, aliens):
+    """Drop entire fleet and change direction."""
+    for alien in aliens.sprites():
+        alien.rect.y += ai_settings.fleet_drop_speed
+    ai_settings.fleet_direction *= -1
+
+
+def update_aliens(ai_settings, aliens, ship, stats, screen, bullets):
+    """Update the position of all aliens on the screen."""
+    check_fleet_edge(ai_settings, aliens)
+    aliens.update()
+
+    # Look for alien - ship collision
+    if pygame.sprite.spritecollideany(ship, aliens):
+        ship_hit(ai_settings, stats, screen, ship, aliens, bullets)
+    
+    check_aliens_bottom(ai_settings, stats, screen, ship, aliens, bullets)
+
+
+def ship_hit(ai_settings, stats, screen, ship, aliens, bullets):
+    """Respond to ship being hit by alien event."""
+    if stats.ships_left > 0:
+        # Decrease number of ship left
+        stats.ships_left -= 1
+
+        # Empty the lists of aliens and bullets
+        aliens.empty()
+        bullets.empty()
+
+        # Create a new fleet and center the ship
+        create_fleet(ai_settings, screen, aliens, ship)
+        ship.center_ship()
+
+        # Pause
+        sleep(0.5)
+    else:
+        stats.game_active = False
+
+def check_aliens_bottom(ai_settings, stats, screen, ship, aliens, bullets):
+    """Check if any aliens reach the bottom of the screen."""
+    screen_rect = screen.get_rect()
+    for alien in aliens.sprites():
+        if alien.rect.bottom >= screen_rect.bottom:
+            ship_hit(ai_settings, stats, screen, ship, aliens, bullets)
+            break
